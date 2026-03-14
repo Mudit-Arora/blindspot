@@ -18,7 +18,7 @@ logger = logging.getLogger("blindspot")
 async def lifespan(app: FastAPI):
     logger.info("Blindspot backend starting up")
     logger.info(f"  SMALLEST_AI_API_KEY set: {'yes' if os.getenv('SMALLEST_AI_API_KEY') else 'no'}")
-    logger.info(f"  OPENAI_API_KEY set: {'yes' if os.getenv('OPENAI_API_KEY') else 'no'}")
+    logger.info(f"  GROQ_API_KEY set: {'yes' if os.getenv('GROQ_API_KEY') else 'no'}")
     yield
     logger.info("Blindspot backend shutting down")
 
