@@ -26,41 +26,11 @@ final class VoiceAssistantViewModel {
     private let backendAPI = BackendAPIService()
     private let audioPlayer = AudioPlaybackService()
 
-    private var responseAudioBuffer = Data()
-
     // MARK: - Setup
 
     func setup() async {
         let granted = await audioRecorder.requestPermission()
         micPermissionGranted = granted
-
-        configureBackendCallbacks()
-    }
-
-    private func configureBackendCallbacks() {
-        backendAPI.onAudioReceived = { [weak self] data in
-            guard let self else { return }
-            self.responseAudioBuffer.append(data)
-        }
-
-        backendAPI.onTranscriptReceived = { [weak self] userText, assistantText in
-            DispatchQueue.main.async {
-                self?.userTranscript = userText
-                self?.assistantTranscript = assistantText
-            }
-        }
-
-        backendAPI.onResponseComplete = { [weak self] in
-            DispatchQueue.main.async {
-                self?.playResponseAudio()
-            }
-        }
-
-        backendAPI.onError = { [weak self] error in
-            DispatchQueue.main.async {
-                self?.state = .error(error.localizedDescription)
-            }
-        }
     }
 
     // MARK: - Voice Interaction
@@ -74,7 +44,6 @@ final class VoiceAssistantViewModel {
             state = .listening
             userTranscript = ""
             assistantTranscript = ""
-            responseAudioBuffer = Data()
             AccessibilityManager.shared.triggerLightFeedback()
         } catch {
             state = .error("Could not start recording: \(error.localizedDescription)")
@@ -98,34 +67,25 @@ final class VoiceAssistantViewModel {
 
     private func sendToBackend(audio: Data, scene: SceneDescription) async {
         do {
-            // Try WebSocket first
-            backendAPI.connect()
+            let response = try await backendAPI.sendSpeechRequest(scene: scene, audio: audio)
 
-            // Small delay to let WebSocket connect
-            try await Task.sleep(nanoseconds: 300_000_000)
-
-            try await backendAPI.sendSpeechRequest(scene: scene, audio: audio)
+            await MainActor.run {
+                userTranscript = response.userText
+                assistantTranscript = response.assistantText
+                playResponseAudio(response.audioData)
+            }
         } catch {
-            // Fallback to REST
-            do {
-                let responseData = try await backendAPI.sendSpeechRequestREST(scene: scene, audio: audio)
-                responseAudioBuffer = responseData
-                await MainActor.run {
-                    playResponseAudio()
-                }
-            } catch {
-                await MainActor.run {
-                    state = .error("Failed to communicate with server: \(error.localizedDescription)")
-                    AccessibilityManager.shared.announce("Error communicating with assistant")
-                }
+            await MainActor.run {
+                state = .error("Failed to communicate with server: \(error.localizedDescription)")
+                AccessibilityManager.shared.announce("Error communicating with assistant")
             }
         }
     }
 
     // MARK: - Audio Playback
 
-    private func playResponseAudio() {
-        guard !responseAudioBuffer.isEmpty else {
+    private func playResponseAudio(_ audioData: Data) {
+        guard !audioData.isEmpty else {
             state = .error("No audio response received.")
             return
         }
@@ -133,10 +93,9 @@ final class VoiceAssistantViewModel {
         state = .speaking
 
         do {
-            try audioPlayer.playAudio(data: responseAudioBuffer) { [weak self] in
+            try audioPlayer.playAudio(data: audioData) { [weak self] in
                 DispatchQueue.main.async {
                     self?.state = .idle
-                    self?.backendAPI.disconnect()
                 }
             }
         } catch {
@@ -150,7 +109,6 @@ final class VoiceAssistantViewModel {
             _ = audioRecorder.stopRecording()
         }
         audioPlayer.stop()
-        backendAPI.disconnect()
         state = .idle
     }
 }
