@@ -2,15 +2,11 @@ import Foundation
 
 enum Configuration {
     /// Backend server base URL — change to your deployed server in production
-    static let backendHost = "localhost"
+    static let backendHost = "10.1.10.176"
     static let backendPort = 8000
 
     static var backendBaseURL: String {
         "http://\(backendHost):\(backendPort)"
-    }
-
-    static var webSocketURL: String {
-        "ws://\(backendHost):\(backendPort)/ws/speech-agent"
     }
 
     static var restEndpointURL: String {
