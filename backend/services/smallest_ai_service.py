@@ -129,6 +129,8 @@ class SmallestAIService:
                 "voice_id": "magnus",
                 "sample_rate": 24000,
                 "speed": 1.0,
+                "language": "en",
+                "output_format": "wav",
             },
         )
         if response.status_code != 200:
