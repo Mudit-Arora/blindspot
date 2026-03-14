@@ -1,7 +1,7 @@
 import AVFoundation
 
 /// Plays audio response data received from the backend.
-final class AudioPlaybackService: @unchecked Sendable {
+final class AudioPlaybackService: NSObject, @unchecked Sendable {
 
     private var audioPlayer: AVAudioPlayer?
     private var audioEngine: AVAudioEngine?
@@ -83,7 +83,7 @@ final class AudioPlaybackService: @unchecked Sendable {
 
     private func configurePlaybackSession() throws {
         let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
+        try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetoothA2DP])
         try session.setActive(true)
     }
 }
@@ -91,7 +91,8 @@ final class AudioPlaybackService: @unchecked Sendable {
 // MARK: - AVAudioPlayerDelegate
 
 extension AudioPlaybackService: AVAudioPlayerDelegate {
-    nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
         completionHandler?()
+        completionHandler = nil
     }
 }
