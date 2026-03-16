@@ -2,6 +2,11 @@
 
 An accessibility-focused iOS app for blind and visually impaired users. Blindspot uses on-device computer vision to analyze surroundings and a voice AI agent that describes what's happening and helps users navigate safely.
 
+## Demo Video
+
+Checkout the demo:
+https://drive.google.com/file/d/1WxWD7MsBLvR-CUFj1B1CwV7Y2t5Os4h_/view?usp=drive_link
+
 ## Architecture
 
 ```
